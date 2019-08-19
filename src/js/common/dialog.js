@@ -1,138 +1,170 @@
-var Dialog = {
-    containerId:'pop-box',
-    containerClass: 'pop-box-container active fadeIn',
-    toastClass: 'pop-toast-dialog fadeIn',
-    box: null,
-    textTemplate: {
-        title: '',
-        content: '提示内容',
-        okBtn: '好的',
-        cancelBtn: '取消',
-        promptTitle: '',
-        promptOkBtn: "确认",
-        hidetime:2500,
-        toasttop:"50%"
-    },
-    getBasicTemplate: function (type) {
-        var temp =
-            '<div class="pop-box-dialog">' +
-            '<div class="pop-box-content">' +
-            '<div class="pop-box-header">' +
-            '<span class="pop-box-close-btn">×</span>' +
-            '<span class="pop-box-title">' +
-            '<span >' + this.textTemplate.title + '</span>' +
-            '</span>' +
-            '</div>' +
-            '<div class="pop-box-text">' +
-            '<span>' + this.textTemplate.content + '</span>' +
-            '</div>' +
-            '<div class="pop-box-footer">' +
-            '<button class="btn-footer btn-block-footer btn-footer-ok">' + this.textTemplate.okBtn + '</button>' +
-            '</div>' +
-            '</div>' +
-            '</div>';
-        return temp;
-    },
-    getConfirmTemplate: function () {
-        return '<div class="pop-box-dialog">' +
-            '<div class="pop-box-content">' +
-            '<div class="pop-box-header">' +
-            '<span class="pop-box-close-btn">×</span>' +
-            '<span class="pop-box-title">' +
-            '<span >' + this.textTemplate.title + '</span>' +
-            '</span>' +
-            '</div>' +
-            '<div class="pop-box-text">' +
-            '<span>' + this.textTemplate.content + '</span>' +
-            '</div>' +
-            '<div class="pop-box-footer">' +
-            '<button class="btn-footer btn-left-footer btn-footer-cancel">' + this.textTemplate.cancelBtn + '</button>' +
-            '<button class="btn-footer btn-right-footer btn-footer-ok">' + this.textTemplate.okBtn + '</button>' +
-            '</div>' +
-            '</div>' +
-            '</div>';
-    },
-    getToastTemplate: function () {
-        return '<span>' + this.textTemplate.content + '</span>';
-    },
-    alert: function (opt) {
-        this.textTemplate.title = opt.title;
-        this.textTemplate.content = opt.content;
-        this.textTemplate.okBtn = opt.okBtn || this.textTemplate.okBtn;
-        var box = document.createElement("div"),
-            _this = this;
-        box.className = this.containerClass;
-        box.id = this.containerId;
-        box.innerHTML = this.getAlertTemplate();
-        this.box = box;
-        document.body.appendChild(this.box);
-        var btn = document.getElementsByClassName('btn-footer-ok');
-        btn[btn.length - 1].focus();
-        btn[btn.length - 1].onclick = function () {
-            if (opt.onConfirm) {
-                opt.onConfirm();
-            }
-            _this.removeBox();
-        }
-    },
-    confirm: function (opt) {
-        this.textTemplate.title = opt.title;
-        this.textTemplate.promptPlaceholder = opt.promptPlaceholder || this.textTemplate.promptPlaceholder;
-        this.textTemplate.okBtn = opt.okBtn || this.textTemplate.promptOkBtn;
-        this.textTemplate.cancelBtn = opt.cancelBtn || this.textTemplate.cancelBtn;
-        this.textTemplate.content = opt.content || this.textTemplate.content;
-        var box = document.createElement("div"),
-            _this = this;
-        this.box = box;
-        box.className = this.containerClass;
-        box.id = this.containerId;
-        box.innerHTML = this.getConfirmTemplate();
-        document.body.appendChild(box);
-        var okBtn = document.getElementsByClassName('btn-footer-ok');
-        okBtn[okBtn.length - 1].focus();
-        okBtn[okBtn.length - 1].onclick = function () {
-            if (opt.onConfirm) {
-                opt.onConfirm();
-            }
-            _this.removeBox();
-        }
-        var cancelBtn = document.getElementsByClassName('btn-footer-cancel');
-        cancelBtn[cancelBtn.length - 1].onclick = function () {
-            if (opt.onCancel) {
-                opt.onCancel();
-            }
-            _this.removeBox();
-        }
-    },
-    toast: function (opt){
-        this.textTemplate.content = opt.content || this.textTemplate.content;
-        this.textTemplate.hidetime = opt.hidetime || this.textTemplate.hidetime;
-        this.textTemplate.toasttop = opt.toasttop || this.textTemplate.toasttop;
-        var box = document.createElement("div"),
-            _this = this;
-        this.box = box;
-        box.className = this.toastClass;
-        box.id = this.containerId;
-        box.style.top = this.textTemplate.toasttop;
-        box.innerHTML = this.getToastTemplate();
-        document.body.appendChild(box);
-        setTimeout(function(){
-            _this.removeBox();
-        },this.textTemplate.hidetime);
-    },
-    colse: function () {
-        this.removeBox();
-    },
-    removeBox: function () {
-        var box = document.getElementById("pop-box");
-        var classVal = document.getElementById("pop-box").getAttribute("class");
-        classVal = classVal.replace("fadeIn","fadeOut");
-        document.getElementById("pop-box").setAttribute("class",classVal);
-        setTimeout(function(){
-            document.body.removeChild(box);
-        },900);
-    }
-};
+let dialog = (function () {
 
-export { Dialog }
+  // 节点类型
+  let elem, toastelem, dialog, toastcont, cancelBtn, confirmBtn;
+
+  // 动画函数数组
+  let animaArr = new Array(['fadeIn', 'fadeOut'], ['slideDown', 'slideUp'], ['scaleIn', 'scaleOut']);
+
+  // 当前动画类型
+  let currAnimation = '';
+
+
+  /**
+   * @method getNeedElement 获取所需要的节点 
+   */
+  let getNeedElement = function (type) {
+    // 一家人最重要是整整齐齐 
+    if(type == 'toast'){
+      toastelem = document.querySelector('.toast-wrapper');
+      toastcont = toastelem.querySelector('.toast-content');
+    }else{
+      elem = document.querySelector('.dialog-wrapper');
+      dialog = elem.querySelector('.dialog');
+      cancelBtn = elem.querySelector('.cancel-btn');
+      confirmBtn = elem.querySelector('.confirm-btn');
+    }
+  }
+
+
+  /**
+   * @method show 显示dialog组件
+   * @param {Object} options 一系列参数
+   * @returns {Object} 当前dialog节点 
+   */
+  let show = function (options = {}) {
+
+    // 获取参数
+    let {
+      title = '', content = '兄弟，你好像忘记传content值了', skin = '', btns = ['确定'], confirm = null, cancel = null, shadeClose = true, animation = 1
+    } = options;
+
+    // 皮肤类名 
+    let skinClass = skin ? ` ${skin}` : '';
+
+    // 给当前动画类型赋值
+    currAnimation = animation;
+
+    // 生成按钮 
+    let btnTemp = '';
+    btns.forEach((item, index) => {
+      if (index == 2) return;
+      let btnClass = index == 0 ? 'confirm-btn' : 'cancel-btn';
+      let temp = `<button class="btn ${btnClass}">${item}</button>`
+      btnTemp += temp
+    })
+
+    // 最终生成的HTML 
+    let html = `
+      <div class="dialog-wrapper fadeIn">
+        <div class="dialog${skinClass} ${animaArr[currAnimation][0]}">
+          <div class="title">${title}</div> <div class="content">${content}</div>
+          <div class="buttons">${btnTemp}</div>
+        </div>
+      </div> `;
+
+    // 添加到Body 
+    document.body.innerHTML += html;
+
+    // 获取所需要的节点 
+    getNeedElement();
+
+    // 绑定事件 
+    bindEvent(confirm, cancel, shadeClose);
+
+    return elem;
+
+  }
+
+
+  /**
+   * @method hide 关闭dialog组件
+   */
+  let hide = function (index) {
+
+    // 最外层执行显示动画(固定) 
+    elem.classList.add('fadeOut');
+
+    // 内容层执行关闭动画
+    dialog.classList.add(`${animaArr[currAnimation][1]}`);
+
+    // 最终移除 
+    setTimeout(() => {
+      elem.remove();
+    }, 200);
+
+  }
+
+
+  let toast = function (options = {}) {
+    let {
+      content = '兄弟，你好像忘记传content值了',hidetime = 2500,toasttop = "50%", animation = 1
+    } = options;
+
+    // 给当前动画类型赋值
+    currAnimation = animation;
+
+    // 最终生成的HTML
+    let html = `
+      <div class="toast-wrapper fadeIn" style="top:${toasttop}">
+        <span class="toast-content ${animaArr[currAnimation][0]}">${content}</span>
+      </div> `;
+
+    // 添加到Body 
+    document.body.innerHTML += html;
+    // 获取所需要的节点 
+    getNeedElement('toast');
+
+    setTimeout(() => {
+      //toastelem.remove();
+      toastelem.classList.add('fadeOut');
+      toastcont.classList.add(`${animaArr[currAnimation][1]}`);
+
+      setTimeout(() => {
+        toastelem.remove();
+      }, 200);
+    }, hidetime);
+  }
+
+  /**
+   * @method bindEvent 给dialog绑定事件
+   * @param {Object} confirm 确认回调
+   * @param {Object} cancel 取消回调 
+   */
+  let bindEvent = function (confirm, cancel, shadeClose) {
+
+    // confirm按钮的回调
+    confirmBtn && confirmBtn.addEventListener('click', e => {
+      hide();
+      confirm && confirm();
+    })
+
+    // cancel按钮的回调 
+    cancelBtn && cancelBtn.addEventListener('click', e => {
+      hide();
+      cancel && cancel();
+    })
+
+    // 是否开启点击遮罩关闭
+    if (shadeClose) {
+      elem.addEventListener('click', e => {
+        let target = e.target || e.srcElement;
+        if (/dialog-wrapper/.test(target.className)) {
+          hide();
+        }
+      })
+    }
+
+  }
+
+  // 对外暴露的方法
+  return {
+    show,
+    hide,
+    toast
+  }
+
+})();
+
+export { dialog }
 
